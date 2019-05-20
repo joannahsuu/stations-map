@@ -1,0 +1,15 @@
+@mixin size($w, $h: $w) {
+  width: $w;
+  height: $h;
+}
+
+@mixin flex($ai: null, $jc: null, $fd: null) {
+  display: flex;
+  flex-direction: $fd;
+  align-items: $ai;
+  justify-content: $jc;
+}
+
+@mixin ta($d: center) {
+  text-align: $d;
+}
