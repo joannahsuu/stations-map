@@ -9,6 +9,7 @@
 #app {
   margin: 0;
   padding: 0;
+  font-family: 'Noto Sans TC', Helvetica, 'Microsoft JhengHei', Arial, sans-serif;
 }
 
 * {
