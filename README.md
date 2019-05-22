@@ -1,4 +1,4 @@
-# template-project
+# stations-map
 
 ## Project setup
 ```
