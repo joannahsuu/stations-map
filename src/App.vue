@@ -18,6 +18,20 @@
   box-sizing: border-box;
 }
 
+button,
+button:focus,
+button:active,
+textarea,
+textarea:focus,
+textarea:active,
+input,
+input:focus,
+input:active {
+  border: 0;
+  appearance: none;
+  outline: none;
+}
+
 .app {
   overflow-x: hidden;
   font-family: 'Noto Sans TC', Helvetica, 'Microsoft JhengHei', Arial, sans-serif;

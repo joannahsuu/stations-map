@@ -2,17 +2,12 @@
 .maps
   &__container
     +size(100vw, 100vh)
-    position: relative
-    // overflow-y: scroll
 
 #maps
   +size(100%)
   &-details
     &__container
-      +size(rem(320px), rem(280px))
-      position: fixed
-      top: rem(100px)
-      left: rem(20px)
+      +size(rem(320px), rem(200px))
       box-shadow: 0 2px 4px 0 rgba(50,50,55,.15)
 
 .detail
@@ -48,37 +43,12 @@
       text-decoration: none
       transition: all .3s
   &__item
-    margin: rem(6px 0)
+    margin: rem(8px 0)
 </style>
 
 <template lang="pug">
   .maps__container
-    //- p {{ pos }}
     #maps
-    #maps-details__container
-      .detail__container
-        .detail__title
-          p 中油石門加油站
-        .detail__content
-          .detail__item
-            p 地址：新北市石門區中央路1之15號(近石門國中)
-          .detail__item
-            p 地址：新北市石門區中央路1之15號(近石門國中)
-        .detail__routes
-          button 前往
-    //- .results__container(
-      v-if="results"
-      v-for="(result, idx) in results"
-      :key="idx")
-      .detail__title
-        p {{ result.LocName }}
-      .detail__content
-        .detail__item
-          p 緯度：{{ result.lat }}
-          p 經度：{{ result.lng }}
-          p zipcode：{{ result.zipcode }}
-          p 地址：{{ result.address }}
-          p 服務時間：{{ result.time }}
 </template>
 
 <script>
@@ -88,6 +58,9 @@ import station from '@/assets/images/common/station.png'
 
 let map
 let infoWindow
+// 載入路線服務與路線顯示圖層
+let directionsService
+let directionsDisplay
 
 export default {
   data() {
@@ -99,16 +72,9 @@ export default {
     }
   },
   mounted() {
-    // this.getStations()
-    // if (navigator.geolocation) {
-    //   console.log('Geolocation is supported!')
-    //   this.getGeolocation()
-    // }
-    // else {
-    //   console.log('Geolocation is not supported for this Browser/OS version yet.')
-    // }
+    this.getStations()
     const scriptTag = document.getElementsByTagName('script')
-    const key = 'hi'
+    const key = 'YOUR_MAP_KEY'
     const mapSrc = `https://maps.googleapis.com/maps/api/js?key=${key}`
     let hasLoaded = false
     for (let i = 0; i < scriptTag.length; i += 1) {
@@ -123,19 +89,10 @@ export default {
       script.type = 'text/javascript'
       script.src = mapSrc
       document.body.appendChild(script)
-      script.onload = script.onreadystatechange = () => {
-        console.log('done')
-        // this.getGeolocation()
-        // this.initMap()
+      script.onload = () => {
+        this.initMap()
       }
-      // script.onerror = (err) => {
-      //   // reject(err)
-      //   console.log('error', err)
-      // }
     }
-    // this.getGeolocation()
-    // this.initMap()
-    // this.getStations()
   },
   methods: {
     getStations() {
@@ -152,13 +109,16 @@ export default {
           const result = transformStationsList(data)
           // console.log('result', result)
           this.results = result
-          let stationIcon = {
+          const stationIcon = {
             url: this.station, // url
             size: new google.maps.Size(25, 25),
           }
-          for (let i = 0; i < this.results.length; i++) {
-            let latLng = new google.maps.LatLng(this.results[i].lat,this.results[i].lng)
-            let contentString = `
+          for (let i = 0; i < this.results.length; i += 1) {
+            const latLng = new google.maps.LatLng(
+              this.results[i].lat,
+              this.results[i].lng
+            )
+            const contentString = `
               <div id="maps-details__container">
                 <div class="detail__container">
                   <div class="detail__title">
@@ -172,22 +132,32 @@ export default {
                       <p>營業時間：${this.results[i].time}</p>
                     </div>
                   </div>
+                  <div class="detail__routes">
+                    <button id="routes__btn">前往</button>
+                  </div>
                 </div>
               </div>`
-            let infowindow = new google.maps.InfoWindow({
+            const infowindow = new google.maps.InfoWindow({
               content: contentString,
             })
-            let marker = new google.maps.Marker({
+            const marker = new google.maps.Marker({
               position: latLng,
-              map: map,
+              map,
               icon: stationIcon,
             })
             marker.addListener('click', () => {
-              console.log('clickclick', this.results[i])
+              // console.log('clickclick', this.results[i])
               // let popup = document.getElementById('popup')
               // console.log(popup)
+              infowindow.open(map, marker)
               this.$nextTick(() => {
-                infowindow.open(map, marker)
+                const btn = document.getElementById('routes__btn')
+                // console.log('btn', btn)
+                btn.addEventListener('click', () => {
+                  // 先關閉 infowindow，再導航
+                  infowindow.close()
+                  this.routing(this.results[i])
+                })
               })
             })
           }
@@ -196,29 +166,57 @@ export default {
         console.error(error)
       })
     },
+    routing(item) {
+      const { lat, lng } = item
+      // 放置路線圖層
+      directionsDisplay.setMap(map)
+      // 路線相關設定
+      const request = {
+        origin: { ...this.pos },
+        destination: { lat, lng },
+        travelMode: 'DRIVING',
+      }
+
+      // 繪製路線
+      directionsService.route(request, (result, status) => {
+        // console.log(result)
+        // console.log(status)
+        if (status === 'OK') {
+          // 回傳路線上每個步驟的細節
+          // console.log(result.routes[0].legs[0].steps)
+          directionsDisplay.setDirections(result)
+        } else {
+          console.log(status)
+        }
+      })
+    },
     getGeolocation() {
       navigator.geolocation.getCurrentPosition((position) => {
-        const {latitude, longitude} = position.coords
+        const { latitude, longitude } = position.coords
         this.pos = {
           lat: latitude,
           lng: longitude,
         }
         infoWindow.setPosition(this.pos)
         map.setCenter(this.pos)
-        let icon = {
+        const icon = {
           url: this.pin, // url
           size: new google.maps.Size(30, 30),
         }
         const marker = new google.maps.Marker({
           position: this.pos,
-          map: map,
+          map,
           // icon,
         })
       })
     },
     initMap() {
+      // 載入路線服務與路線顯示圖層
+      directionsService = new google.maps.DirectionsService()
+      directionsDisplay = new google.maps.DirectionsRenderer()
+
       map = new google.maps.Map(document.getElementById('maps'), {
-        zoom: 18,
+        zoom: 16,
       })
       infoWindow = new google.maps.InfoWindow
       this.getGeolocation()

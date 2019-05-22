@@ -2,7 +2,7 @@ module.exports = {
   publicPath: './',
 
   devServer: {
-    port: 9000,
+    port: 9005,
     open: true,
     https: false,
   },
